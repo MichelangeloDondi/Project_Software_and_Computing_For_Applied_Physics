@@ -38,21 +38,22 @@ include("DrawCircuit.jl")
 # Hardcode di un grafo con R1 ed R2 in parallelo tra loro e in serie con R3 ed R4
 ####################################################
 
-# Numero di nodi
+# Number of nodes
 N_n = 5
 
-# Numero di archi
-N_a = 3
+# Number of archs
+N_a = 2
 
-# Raggio del poligono del grafo
-raggio_poligono = 300
+# Radius of the cicle circumscribed to polygon
+polygon_radius = 300
+# x offset of the graph respectto
 x_offset = - 400
 
 # Manually specify node positions in a circular layout
-node_positions =  [(raggio_poligono * sin(2* pi * (i-1) / N_n) + x_offset, - raggio_poligono * cos(2 * pi * (i-1) / N_n)) for i in 1:N_n]
+node_positions =  [(polygon_radius * sin(2* pi * (i-1) / N_n) + x_offset, - polygon_radius * cos(2 * pi * (i-1) / N_n)) for i in 1:N_n]
 
 println(node_positions) #
-
+"""
 # Arco a1
 R1 = "R1 = " * string(20) * " [Ω]"
 R2 = "R2 = " * string(3) * " [Ω]"
@@ -71,9 +72,64 @@ R4 = "R4 = " * string(10) * " [Ω]" # [Ω]
 a3_components = [R4]
 a3_components_string = string(a3_components[1])
 a3 = [4, 1, a3_components_string]
+"""
 
-# Array degli archi
-archs = [a1, a2, a3]
+struct Component
+    name::String
+    type::String
+    magnitude::String
+end
+
+struct Arc
+    name::String
+    node_in::Int
+    node_out::Int
+    components::Vector{Component}
+end
+
+# Function to append components to an existing Arco
+append_components!(arc::Arc, new_components::Vector{Component}) = push!(arc.components, new_components...)
+
+
+"""
+my_arc = Arc("my_arc",5,1)
+my_components = ["R1 = 5 [Ω]", "R2 = 2 [Ω]"]
+append_components!(my_arc, my_components)
+print(my_arc)
+"""
+archs = Vector{Arc}()
+
+for i in 1:N_a
+    println("Enter arc initial node: ")
+    node_in = parse(Int,readline())
+    println("Enter arc end node: ")
+    node_out = parse(Int,readline())
+    arc = Arc("a"*string(i),node_in,node_out, [])
+    println("Enter components: ")
+
+    while true
+        println("Enter component name: ")
+        name = readline()
+        println("Enter type: ")
+        type = readline()
+        println("Enter magnitude: ")
+        magnitude = readline()
+        component = Component(name,type,magnitude)
+        push!(arc.components,component)
+        println("More Arc Components? [Y/N]")
+        is_finished = readline()
+        if is_finished == "N"
+            break
+        end
+    end
+    push!(archs,arc)
+end
+
+for i in 1:N_a
+    println(archs[i])
+end
+# Arradius degli archi
+#archs = [a1, a2, a3]
 
 #############################################
 # disegno del grafo verde su sfondo nero
@@ -93,8 +149,8 @@ archs = [a1, a2, a3]
     for i in 1:N_a
 
         line( # drawing arch a_i
-        Point(node_positions[archs[i][1]]), # outcoming node
-        Point(node_positions[archs[i][2]]) #incoming node
+        Point(node_positions[archs[i].node_out]), # outcoming node
+        Point(node_positions[archs[i].node_in]) #incoming node
         )
 
     end
@@ -108,12 +164,15 @@ archs = [a1, a2, a3]
     sethue("skyblue")
     fontsize(34)
 
-    posizione_inizio_legenda = Point(- raggio_poligono - x_offset, -400)
+    posizione_inizio_legenda = Point(- polygon_radius - x_offset, -400)
 
     for i in 1:N_a
-
+        all_components_string = ""
+        for comp in archs[i].components
+            all_components_string *= comp.name*" = "*comp.magnitude*"\\n"
+        end
         text(
-            "a"*string(i)*") N"*string(archs[i][1])*"->N"*string(archs[i][2])*": "*string(archs[i][3]),
+            "a"*string(i)*") N"*string(archs[i].node_out)*"->N"*string(archs[i].node_in)*": "*all_components_string,
             posizione_inizio_legenda + i .* (0, 50)
             )
 
